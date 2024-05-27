@@ -113,3 +113,91 @@ class TestFileStorage(unittest.TestCase):
         with open("file.json", "r") as f:
             js = f.read()
         self.assertEqual(json.loads(string), json.loads(js))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_reload(self):
+        """Test that reload properly loads objects from file.json"""
+        storage = FileStorage()
+        new_dict = {}
+        for key, value in classes.items():
+            instance = value()
+            instance_key = instance.__class__.__name__ + "." + instance.id
+            new_dict[instance_key] = instance
+        with open("file.json", "w") as f:
+            json.dump(new_dict, f)
+        storage.reload()
+        for key, value in new_dict.items():
+            self.assertTrue(value == storage._FileStorage__objects[key])
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_delete(self):
+        """Test that delete properly deletes objects from __objects"""
+        storage = FileStorage()
+        new_dict = {}
+        for key, value in classes.items():
+            instance = value()
+            instance_key = instance.__class__.__name__ + "." + instance.id
+            new_dict[instance_key] = instance
+        save = FileStorage._FileStorage__objects
+        FileStorage._FileStorage__objects = new_dict
+        storage.delete(list(new_dict.values())[0])
+        self.assertNotIn(list(new_dict.keys())[0],
+                         storage._FileStorage__objects)
+        FileStorage._FileStorage__objects = save
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_close(self):
+        """Test that close method calls reload method"""
+        storage = FileStorage()
+        storage.reload = unittest.mock.MagicMock()
+        storage.close()
+        self.assertTrue(storage.reload.called)
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_get(self):
+        """Test that get method retrieves one object"""
+        storage = FileStorage()
+        new_dict = {}
+        for key, value in classes.items():
+            instance = value()
+            instance_key = instance.__class__.__name__ + "." + instance.id
+            new_dict[instance_key] = instance
+        save = FileStorage._FileStorage__objects
+        FileStorage._FileStorage__objects = new_dict
+        for key, value in new_dict.items():
+            self.assertTrue(value == storage.get(value.__class__, value.id))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count(self):
+        """Test that count method returns the number of objects in storage"""
+        storage = FileStorage()
+        new_dict = {}
+        for key, value in classes.items():
+            instance = value()
+            instance_key = instance.__class__.__name__ + "." + instance.id
+            new_dict[instance_key] = instance
+        save = FileStorage._FileStorage__objects
+        FileStorage._FileStorage__objects = new_dict
+        for key, value in classes.items():
+            self.assertEqual(storage.count(value), 1)
+        self.assertEqual(storage.count(), len(new_dict))
+        FileStorage._FileStorage__objects = save
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_reload(self):
+        """Test that reload properly loads objects from file.json"""
+        storage = FileStorage()
+        new_dict = {}
+        for key, value in classes.items():
+            instance = value()
+            instance_key = instance.__class__.__name__ + "." + instance.id
+            new_dict[instance_key] = instance
+        with open("file.json", "w") as f:
+            json.dump(new_dict, f)
+        storage.reload()
+        for key, value in new_dict.items():
+            self.assertTrue(value == storage._FileStorage__objects[key])
+
+
+if __name__ == "__main__":
+    unittest.main()
